@@ -120,7 +120,7 @@ static int _usbctrl_vendorreq_sync_read(struct usb_device *udev, u8 request,
 
 	if (status < 0 && count++ < 4)
 		pr_err("reg 0x%x, usbctrl_vendorreq TimeOut! status:0x%x value=0x%x\n",
-		       value, status, le32_to_cpu(*(u32 *)pdata));
+		       value, status, *(u32 *)pdata);
 	return status;
 }
 
@@ -210,17 +210,16 @@ static void _usb_writeN_sync(struct rtl_priv *rtlpriv, u32 addr, void *data,
 	u16 index = REALTEK_USB_VENQT_CMD_IDX;
 	int pipe = usb_sndctrlpipe(udev, 0); /* write_out */
 	u8 *buffer;
-	dma_addr_t dma_addr;
 
-	wvalue = (u16)(addr&0x0000ffff);
-	buffer = usb_alloc_coherent(udev, (size_t)len, GFP_ATOMIC, &dma_addr);
+	wvalue = (u16)(addr & 0x0000ffff);
+	buffer = kmalloc(len, GFP_ATOMIC);
 	if (!buffer)
 		return;
 	memcpy(buffer, data, len);
 	usb_control_msg(udev, pipe, request, reqtype, wvalue,
 			index, buffer, len, 50);
 
-	usb_free_coherent(udev, (size_t)len, buffer, dma_addr);
+	kfree(buffer);
 }
 
 static void _rtl_usb_io_handler_init(struct device *dev,
@@ -543,8 +542,8 @@ static void _rtl_rx_pre_process(struct ieee80211_hw *hw, struct sk_buff *skb)
 	WARN_ON(skb_queue_empty(&rx_queue));
 	while (!skb_queue_empty(&rx_queue)) {
 		_skb = skb_dequeue(&rx_queue);
-		_rtl_usb_rx_process_agg(hw, skb);
-		ieee80211_rx_irqsafe(hw, skb);
+		_rtl_usb_rx_process_agg(hw, _skb);
+		ieee80211_rx_irqsafe(hw, _skb);
 	}
 }
 
@@ -640,6 +639,7 @@ static int _rtl_usb_receive(struct ieee80211_hw *hw)
 			RT_TRACE(rtlpriv, COMP_USB, DBG_EMERG,
 				 "Failed to prep_rx_urb!!\n");
 			err = PTR_ERR(skb);
+			usb_free_urb(urb);
 			goto err_out;
 		}
 
@@ -673,7 +673,7 @@ static int rtl_usb_start(struct ieee80211_hw *hw)
 		set_hal_start(rtlhal);
 
 		/* Start bulk IN */
-		_rtl_usb_receive(hw);
+		err = _rtl_usb_receive(hw);
 	}
 
 	return err;
@@ -848,8 +848,9 @@ static void _rtl_usb_transmit(struct ieee80211_hw *hw, struct sk_buff *skb,
 	_rtl_submit_tx_urb(hw, _urb);
 }
 
-static void _rtl_usb_tx_preprocess(struct ieee80211_hw *hw, struct sk_buff *skb,
-			    u16 hw_queue)
+static void _rtl_usb_tx_preprocess(struct ieee80211_hw *hw,
+				   struct sk_buff *skb,
+				   u16 hw_queue)
 {
 	struct rtl_priv *rtlpriv = rtl_priv(hw);
 	struct rtl_mac *mac = rtl_mac(rtl_priv(hw));
@@ -901,7 +902,8 @@ static void _rtl_usb_tx_preprocess(struct ieee80211_hw *hw, struct sk_buff *skb,
 		rtlpriv->cfg->ops->led_control(hw, LED_CTL_TX);
 }
 
-static int rtl_usb_tx(struct ieee80211_hw *hw, struct sk_buff *skb,
+static int rtl_usb_tx(struct ieee80211_hw *hw,
+		      struct sk_buff *skb,
 		      struct rtl_tcb_desc *dummy)
 {
 	struct rtl_usb *rtlusb = rtl_usbdev(rtl_usbpriv(hw));
