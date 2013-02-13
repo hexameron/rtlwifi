@@ -40,6 +40,23 @@
 
 #define MAX_USBCTRL_VENDORREQ_TIMES		10
 
+#ifdef CONFIG_ARCH_BCM2708
+int _usbctrl_vendorreq_sync_write(struct usb_device *udev, u8 request,
+					u16 value, u16 index, void *pdata,
+					u16 len)
+{
+	unsigned int pipe;
+	int status;
+	u8 reqtype;
+
+	pipe = usb_sndctrlpipe(udev, 0);
+	reqtype =  REALTEK_USB_VENQT_WRITE;
+	status = usb_control_msg(udev, pipe, request, reqtype, value,
+				index, pdata, len, 200); /*max. timeout*/
+	return status;
+}
+#else
+
 static void usbctrl_async_callback(struct urb *urb)
 {
 	if (urb)
@@ -91,6 +108,7 @@ static int _usbctrl_vendorreq_async_write(struct usb_device *udev, u8 request,
 	usb_free_urb(urb);
 	return rc;
 }
+#endif
 
 static int _usbctrl_vendorreq_sync_read(struct usb_device *udev, u8 request,
 					u16 value, u16 index, void *pdata,
@@ -107,7 +125,7 @@ static int _usbctrl_vendorreq_sync_read(struct usb_device *udev, u8 request,
 
 	do {
 		status = usb_control_msg(udev, pipe, request, reqtype, value,
-					 index, pdata, len, 0); /*max. timeout*/
+					 index, pdata, len, 200); /*max. timeout*/
 		if (status < 0) {
 			/* firmware download is checksumed, don't retry */
 			if ((value >= FW_8192C_START_ADDRESS &&
@@ -174,8 +192,13 @@ static void _usb_write_async(struct usb_device *udev, u32 addr, u32 val,
 	index = REALTEK_USB_VENQT_CMD_IDX; /* n/a */
 	wvalue = (u16)(addr&0x0000ffff);
 	data = cpu_to_le32(val);
+#ifdef CONFIG_ARCH_BCM2708
+        _usbctrl_vendorreq_sync_write(udev, request, wvalue, index, &data,
+					len);
+#else
 	_usbctrl_vendorreq_async_write(udev, request, wvalue, index, &data,
 				       len);
+#endif
 }
 
 static void _usb_write8_async(struct rtl_priv *rtlpriv, u32 addr, u8 val)
