@@ -155,9 +155,9 @@ static u32 _usb_read_sync(struct rtl_priv *rtlpriv, u32 addr, u16 len)
 	unsigned long flags;
 
 	spin_lock_irqsave(&rtlpriv->locks.usb_lock, flags);
-	if (++rtlpriv->usb_data_index >= RTL_USB_MAX_RX_COUNT)
+	if (++rtlpriv->usb_data_index * 8 >= RTL_USB_MAX_RX_COUNT)
 		rtlpriv->usb_data_index = 0;
-	data = &rtlpriv->usb_data[rtlpriv->usb_data_index];
+	data = &rtlpriv->usb_data[rtlpriv->usb_data_index * 8];
 	spin_unlock_irqrestore(&rtlpriv->locks.usb_lock, flags);
 	request = REALTEK_USB_VENQT_CMD_REQ;
 	index = REALTEK_USB_VENQT_CMD_IDX; /* n/a */
@@ -242,7 +242,7 @@ static void _usb_writeN_sync(struct rtl_priv *rtlpriv, u32 addr, void *data,
 		return;
 	memcpy(buffer, data, len);
 	usb_control_msg(udev, pipe, request, reqtype, wvalue,
-			index, buffer, len, 50);
+			index, buffer, len, 250);
 
 	kfree(buffer);
 }
