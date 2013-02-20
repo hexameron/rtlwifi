@@ -73,7 +73,9 @@ static int _usbctrl_vendorreq_async_write(struct usb_device *udev, u8 request,
 	struct usb_ctrlrequest *dr;
 	struct urb *urb;
 	struct rtl819x_async_write_data {
-		u8 data[REALTEK_USB_VENQT_MAX_BUF_SIZE];
+		u8 data[REALTEK_USB_VENQT_MAX_BUF_SIZE
+/* www.mail-archive.com/stable@vger.kernel.org/msg31569.html */
+							+ 2 ];
 		struct usb_ctrlrequest dr;
 	} *buf;
 
