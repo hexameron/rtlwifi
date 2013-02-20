@@ -7,13 +7,13 @@ driver "8192cu" uses sync writes - copying that into rtl8192cu gets
 it working, but it is still not enough.
 
 There is a pending Kernel patch which suggests that 32 byte alignment is required.
-(cache line size ?). Adding 32 byte alignment to reads improves the driver.
+(cache line size ?). Adding 32 byte alignment to reads is also needed.
 
 First, rtlwifi has been disabled in the RaspberryPi kernel, so it is
 necessary to reverse changes to drivers/network/wireless/Makefile and
 drivers/network/wireless/Kconfig.
 
-Secondly, drivers/network/wireless/rtlwifi/(usb.c and wifi.h) can be patched as
+Secondly, drivers/network/wireless/rtlwifi/usb.c can be patched as
 required.
 
 Prebuilt modules for kernel 3.6.11+ are included. Download as a zipfile
