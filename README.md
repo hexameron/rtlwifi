@@ -18,10 +18,13 @@ required.
 
 Prebuilt modules for kernel 3.6.11+ are included. Download as a zipfile
 (https://github.com/hexameron/rtlwifi/archive/master.zip) , and run:
->unzip rtlwifi-master.zip
->cp -r rtlwifi-master/modules/3.6.11+ /lib/modules/3.6.11+/kernel/drivers/net/wireless/
->depmod -a
->rmmod 8192cu
->modprobe rtl8192cu
 
-#eof.
+```
+(as root, or with "sudo")
+unzip rtlwifi-master.zip
+cp -r rtlwifi-master/modules/3.6.11+/rtlwifi /lib/modules/3.6.11+/kernel/drivers/net/wireless/
+depmod 3.6.11+
+rmmod 8192cu
+modprobe rtl8192cu
+```
+
