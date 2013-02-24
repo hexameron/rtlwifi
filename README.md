@@ -17,6 +17,10 @@ drivers/network/wireless/Kconfig.
 Secondly, drivers/network/wireless/rtlwifi/usb.c can be patched as
 required.
 
+
+Tested on a kernel from January 17th; known to be broken on more recent kernels.
+
+
 Prebuilt modules for kernel 3.6.11+ are included. Download as a zipfile
 (https://github.com/hexameron/rtlwifi/archive/master.zip) , and run:
 
